@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>University Email Tracker (Firebase)</title>
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--text:#1d2433;--muted:#6b7385;--accent:#2f6fed;--ok:#1f9d55;--line:#e3e6ee;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12151c;--card:#1c212c;--text:#eef1f7;--muted:#98a1b5;--accent:#6b9bff;--ok:#3ecf7a;--line:#2b3140}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:720px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:4px 0 12px}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:12px;color:var(--muted)}
+input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);margin-bottom:10px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{flex:1;padding:9px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;font-size:14px;cursor:pointer}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
+.item.done{opacity:.75}
+.item.done .name{text-decoration:line-through}
+.item input{width:22px;height:22px;accent-color:var(--ok);flex-shrink:0}
+.name{flex:1;font-size:15px;cursor:pointer}
+.del{background:#e5484d1a;border:1px solid #e5484d55;color:#e5484d;font-size:18px;cursor:pointer;border-radius:10px;width:42px;height:42px;flex-shrink:0}
+.add{display:flex;gap:8px;margin-bottom:12px}
+.add input{margin:0;flex:1}
+.add button{padding:0 16px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer}
+.empty{text-align:center;color:var(--muted);padding:24px}
+.tools{display:flex;gap:8px;margin-top:14px}
+.tools button{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🎓 University Email Tracker</h1>
+<div id="status" style="font-size:12px;color:var(--muted);margin:-6px 0 10px"></div>
+<div class="stats">
+<div class="stat"><b id="sTotal">0</b><span>Total</span></div>
+<div class="stat"><b id="sDone">0</b><span>Complete</span></div>
+<div class="stat"><b id="sLeft">0</b><span>Pending</span></div>
+</div>
+<input type="text" id="search" placeholder="🔍 Search university...">
+<div class="tabs">
+<button class="tab active" data-f="all">All</button>
+<button class="tab" data-f="pending">Pending</button>
+<button class="tab" data-f="done">Complete</button>
+</div>
+<div class="add"><input type="text" id="newName" placeholder="Add new university"><button id="addBtn">Add</button></div>
+<div id="list"></div>
+<div class="tools"><button id="reset">Reset all</button></div>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const initial=["Xi'an Jiaotong University","Hefei University of Technology","Beijing Institute of Technology","Fudan University","Nanjing University of Aeronautics and Astronautics","China University of Mining and Technology","Wuhan University","Northeastern University","Sichuan University","Shanghai Maritime University","Huazhong University of Science and Technology","University of Science and Technology of China (USTC)","Northwest University (NWU)","Jiangsu University (JSU)","Shandong University of Finance and Economics (SDUFE)","Zhejiang University of Finance and Economics (ZUFE)","Dongbei University of Finance and Economics (DUFE)","Southwestern University of Finance and Economics (SWUFE)","Anhui University of Finance and Economics (AUFE)","Tianjin University of Finance and Economics","Nanjing University of Science and Technology","Nanjing University of Information Science and Technology (NUIST)","Capital University of Economics and Business","Shanghai University of Finance and Economics","Central University of Finance and Economics (CUFE)","Dalian University of Technology","Chongqing University","Tsinghua University","Hubei University of Economics (HBU)","Tongji University","Central South University","Tianjin University","Zhejiang University","Beihang University","Nanjing Audit University","Liaoning University","Xiamen University"];
+const KEY="uniTracker_v1";
+let data=[];let filter="all";
+// ====== FIREBASE CONFIG: apni values yahan paste karein ======
+const firebaseConfig={
+  apiKey:"AIzaSyB5MU0lZUYv2zE3Ois-iPmM5eyA-W-Up8s",
+  authDomain:"master-2027.firebaseapp.com",
+  projectId:"master-2027",
+  storageBucket:"master-2027.firebasestorage.app",
+  messagingSenderId:"650705289754",
+  appId:"1:650705289754:web:dfdee97586196c3d28c7a3"
+};
+// ==============================================================
+let ref=null,synced=false;
+function seed(){return initial.map(n=>({n,d:n==="Wuhan University"}));}
+function setStatus(t){document.getElementById("status").textContent=t}
+function save(){
+if(!ref)return;
+ref.set({items:data}).then(()=>setStatus("🔥 Saved")).catch(e=>setStatus("⚠️ "+e.code));
+}
+function load(){
+data=seed();
+if(false){setStatus("⚠️ Firebase config paste karein");render();return}
+firebase.initializeApp(firebaseConfig);
+ref=firebase.firestore().collection("tracker").doc("main");
+setStatus("Connecting...");
+ref.onSnapshot(snap=>{
+if(snap.exists&&Array.isArray(snap.data().items)){data=snap.data().items}
+else if(!synced){ref.set({items:data})}
+synced=true;setStatus("🔥 Firebase synced");render();
+},e=>setStatus("⚠️ "+e.code));
+}
+function render(){
+const q=document.getElementById("search").value.trim().toLowerCase();
+const list=document.getElementById("list");list.innerHTML="";
+let shown=0;
+data.forEach((u,i)=>{
+if(q&&!u.n.toLowerCase().includes(q))return;
+if(filter==="pending"&&u.d)return;
+if(filter==="done"&&!u.d)return;
+shown++;
+const div=document.createElement("div");div.className="item"+(u.d?" done":"");
+const cb=document.createElement("input");cb.type="checkbox";cb.checked=u.d;
+cb.onchange=()=>{u.d=cb.checked;save();render()};
+const nm=document.createElement("span");nm.className="name";nm.textContent=u.n;
+nm.onclick=()=>{u.d=!u.d;save();render()};
+const del=document.createElement("button");del.className="del";del.textContent="🗑️";
+del.onclick=()=>{if(confirm("Delete this university?\n\n"+u.n)){data.splice(i,1);save();render()}};
+div.append(cb,nm,del);list.appendChild(div);
+});
+if(!shown)list.innerHTML='<div class="empty">No university found</div>';
+const done=data.filter(x=>x.d).length;
+document.getElementById("sTotal").textContent=data.length;
+document.getElementById("sDone").textContent=done;
+document.getElementById("sLeft").textContent=data.length-done;
+}
+document.getElementById("search").oninput=render;
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");filter=t.dataset.f;render()});
+document.getElementById("addBtn").onclick=()=>{const v=document.getElementById("newName").value.trim();if(!v)return;data.push({n:v,d:false});document.getElementById("newName").value="";save();render()};
+document.getElementById("reset").onclick=()=>{if(confirm("Mark all as pending?")){data.forEach(u=>u.d=false);save();render()}};
+load();render();
+</script>
+</body>
+</html>
