@@ -31,6 +31,32 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 .empty{text-align:center;color:var(--muted);padding:24px}
 .tools{display:flex;gap:8px;margin-top:14px}
 .tools button{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;cursor:pointer}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;overflow:hidden}
+.card .item{border:none;border-radius:0;margin:0;background:none}
+.badge{font-size:11px;color:var(--muted);white-space:nowrap}
+.exp{background:none;border:1px solid var(--line);color:var(--text);border-radius:10px;width:42px;height:42px;font-size:16px;cursor:pointer;flex-shrink:0}
+.panel{border-top:1px solid var(--line);padding:10px 12px;background:var(--bg)}
+.prof{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px}
+.prof .top{display:flex;align-items:center;gap:8px}
+.prof .pn{flex:1;font-weight:600;font-size:14px;word-break:break-word}
+.prof .row2{display:flex;gap:8px;margin-top:8px;align-items:center}
+.prof a{font-size:13px;color:var(--accent);text-decoration:none;border:1px solid var(--line);padding:7px 10px;border-radius:8px;white-space:nowrap}
+.prof select{flex:1;padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:14px}
+.s-Pending{border-left:4px solid #8a93a6}.s-Sent{border-left:4px solid #2f6fed}.s-Replied{border-left:4px solid #1f9d55}.s-Noreply{border-left:4px solid #e08a1e}
+.pdel{background:none;border:none;color:#e5484d;font-size:16px;cursor:pointer}
+.padd{display:flex;flex-direction:column;gap:6px}
+.padd input{margin:0}
+.padd button{padding:10px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;cursor:pointer}
+.note{font-size:12px;color:var(--muted);margin:0 0 8px}
+
+.mtabs{display:flex;gap:6px;margin-bottom:12px}
+.mt{flex:1;padding:11px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}
+.mt.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+.pform{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px}
+.pform input,.pform select{margin:0;width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text)}
+.pform button{padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer}
+.pu{font-size:12px;color:var(--muted);margin-top:2px}
 </style>
 </head>
 <body>
@@ -38,11 +64,14 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 <h1>🎓 University Email Tracker</h1>
 <div id="status" style="font-size:12px;color:var(--muted);margin:-6px 0 10px"></div>
 <div class="stats">
-<div class="stat"><b id="sTotal">0</b><span>Total</span></div>
+<div class="stat"><b id="sTotal">0</b><span>Universities</span></div>
 <div class="stat"><b id="sDone">0</b><span>Complete</span></div>
-<div class="stat"><b id="sLeft">0</b><span>Pending</span></div>
+<div class="stat"><b id="sLeft">0</b><span>Professors</span></div>
+<div class="stat"><b id="sReply">0</b><span>Replies</span></div>
 </div>
-<input type="text" id="search" placeholder="🔍 Search university...">
+<div class="mtabs"><button class="mt active" data-v="uni">🎓 Universities</button><button class="mt" data-v="prof">👨‍🏫 Professors</button></div>
+<input type="text" id="search" placeholder="🔍 Search university or professor...">
+<div id="uniView">
 <div class="tabs">
 <button class="tab active" data-f="all">All</button>
 <button class="tab" data-f="pending">Pending</button>
@@ -51,6 +80,23 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 <div class="add"><input type="text" id="newName" placeholder="Add new university"><button id="addBtn">Add</button></div>
 <div id="list"></div>
 <div class="tools"><button id="reset">Reset all</button></div>
+</div>
+<div id="profView" style="display:none">
+<div class="pform">
+<select id="pUni"></select>
+<input type="text" id="pName" placeholder="Professor name">
+<input type="text" id="pLink" placeholder="Profile link (https://...)">
+<button id="pAdd">+ Add professor</button>
+</div>
+<div class="tabs">
+<button class="chip tab active" data-s="all">All</button>
+<button class="chip tab" data-s="Pending">Pending</button>
+<button class="chip tab" data-s="Sent">Sent</button>
+<button class="chip tab" data-s="Replied">Replied</button>
+<button class="chip tab" data-s="No reply">No reply</button>
+</div>
+<div id="plist"></div>
+</div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -87,34 +133,100 @@ else if(!synced){ref.set({items:data})}
 synced=true;setStatus("🔥 Firebase synced");render();
 },e=>setStatus("⚠️ "+e.code));
 }
-function render(){
-const q=document.getElementById("search").value.trim().toLowerCase();
+function fixLink(l){l=(l||"").trim();if(!l)return"";if(!/^https?:\/\//i.test(l))l="https://"+l;return l}
+const STATUS=["Pending","Sent","Replied","No reply"];
+let view="uni",pf="all";
+function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
+function allProfs(){const a=[];data.forEach(u=>{u.profs=u.profs||[];u.profs.forEach((p,pi)=>a.push({u,p,pi}))});return a}
+function renderUni(q){
 const list=document.getElementById("list");list.innerHTML="";
 let shown=0;
 data.forEach((u,i)=>{
+u.profs=u.profs||[];
 if(q&&!u.n.toLowerCase().includes(q))return;
 if(filter==="pending"&&u.d)return;
 if(filter==="done"&&!u.d)return;
 shown++;
-const div=document.createElement("div");div.className="item"+(u.d?" done":"");
-const cb=document.createElement("input");cb.type="checkbox";cb.checked=u.d;
+const div=el("div","item"+(u.d?" done":""));
+const cb=el("input");cb.type="checkbox";cb.checked=u.d;
 cb.onchange=()=>{u.d=cb.checked;save();render()};
-const nm=document.createElement("span");nm.className="name";nm.textContent=u.n;
+const nmWrap=el("div");nmWrap.style.flex="1";
+const nm=el("span","name",u.n);
 nm.onclick=()=>{u.d=!u.d;save();render()};
-const del=document.createElement("button");del.className="del";del.textContent="🗑️";
+nmWrap.appendChild(nm);
+if(u.profs.length){const r=u.profs.filter(p=>p.s==="Replied").length;nmWrap.appendChild(el("div","badge","👨‍🏫 "+u.profs.length+" · ✅ "+r+" replied"))}
+const del=el("button","del","🗑️");
 del.onclick=()=>{if(confirm("Delete this university?\n\n"+u.n)){data.splice(i,1);save();render()}};
-div.append(cb,nm,del);list.appendChild(div);
+div.append(cb,nmWrap,del);list.appendChild(div);
 });
 if(!shown)list.innerHTML='<div class="empty">No university found</div>';
+}
+function fillSelect(){
+const sel=document.getElementById("pUni");const cur=sel.value;
+sel.innerHTML="";
+const o0=el("option",null,"— Select university —");o0.value="";sel.appendChild(o0);
+data.forEach((u,i)=>{const o=el("option",null,u.n);o.value=String(i);sel.appendChild(o)});
+if(cur&&Number(cur)<data.length)sel.value=cur;
+}
+function renderProf(q){
+fillSelect();
+document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("active",c.dataset.s===pf));
+const pl=document.getElementById("plist");pl.innerHTML="";
+let n=0;
+allProfs().forEach(({u,p,pi})=>{
+const st=p.s||"Pending";
+if(pf!=="all"&&st!==pf)return;
+if(q&&!((p.name||"").toLowerCase().includes(q)||u.n.toLowerCase().includes(q)))return;
+n++;
+const box=el("div","prof s-"+st.replace(" ",""));
+const top=el("div","top");
+const info=el("div");info.style.flex="1";
+info.append(el("div","pn",p.name||"(no name)"),el("div","pu","🎓 "+u.n));
+const pd=el("button","pdel","✕");
+pd.onclick=()=>{if(confirm("Delete professor?\n\n"+p.name)){u.profs.splice(pi,1);save();render()}};
+top.append(info,pd);box.appendChild(top);
+const row=el("div","row2");
+const lk=fixLink(p.link);
+if(lk){const a=el("a",null,"🔗 Profile");a.href=lk;a.target="_blank";a.rel="noopener noreferrer";row.appendChild(a)}
+const sel=el("select");
+STATUS.forEach(s=>{const o=el("option",null,s);o.value=s;if(st===s)o.selected=true;sel.appendChild(o)});
+sel.onchange=()=>{p.s=sel.value;save();render()};
+row.appendChild(sel);box.appendChild(row);
+pl.appendChild(box);
+});
+if(!n)pl.innerHTML='<div class="empty">Koi professor nahi mila</div>';
+}
+function render(){
+const q=document.getElementById("search").value.trim().toLowerCase();
+document.getElementById("uniView").style.display=view==="uni"?"block":"none";
+document.getElementById("profView").style.display=view==="prof"?"block":"none";
+document.querySelectorAll(".mt").forEach(b=>b.classList.toggle("active",b.dataset.v===view));
+document.getElementById("search").placeholder=view==="uni"?"🔍 Search university...":"🔍 Search professor or university...";
+if(view==="uni")renderUni(q);else renderProf(q);
+const all=allProfs();
 const done=data.filter(x=>x.d).length;
 document.getElementById("sTotal").textContent=data.length;
 document.getElementById("sDone").textContent=done;
-document.getElementById("sLeft").textContent=data.length-done;
+document.getElementById("sLeft").textContent=all.length;
+document.getElementById("sReply").textContent=all.filter(x=>x.p.s==="Replied").length;
 }
 document.getElementById("search").oninput=render;
-document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");filter=t.dataset.f;render()});
-document.getElementById("addBtn").onclick=()=>{const v=document.getElementById("newName").value.trim();if(!v)return;data.push({n:v,d:false});document.getElementById("newName").value="";save();render()};
-document.getElementById("reset").onclick=()=>{if(confirm("Mark all as pending?")){data.forEach(u=>u.d=false);save();render()}};
+document.querySelectorAll(".mt").forEach(b=>b.onclick=()=>{view=b.dataset.v;document.getElementById("search").value="";render()});
+document.querySelectorAll("#uniView .tab").forEach(t=>t.onclick=()=>{document.querySelectorAll("#uniView .tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");filter=t.dataset.f;render()});
+document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{pf=c.dataset.s;render()});
+document.getElementById("addBtn").onclick=()=>{const v=document.getElementById("newName").value.trim();if(!v)return;data.push({n:v,d:false,profs:[]});document.getElementById("newName").value="";save();render()};
+document.getElementById("reset").onclick=()=>{if(confirm("Mark all universities as pending?")){data.forEach(u=>u.d=false);save();render()}};
+document.getElementById("pAdd").onclick=()=>{
+const idx=document.getElementById("pUni").value;
+const name=document.getElementById("pName").value.trim();
+const link=document.getElementById("pLink").value.trim();
+if(idx===""){alert("Pehle university select karein");return}
+if(!name){alert("Professor ka naam likhein");return}
+const u=data[Number(idx)];u.profs=u.profs||[];
+u.profs.push({name,link,s:"Pending"});
+document.getElementById("pName").value="";document.getElementById("pLink").value="";
+save();render();
+};
 load();render();
 </script>
 </body>
