@@ -78,8 +78,11 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 <button class="tab" data-f="done">Complete</button>
 </div>
 <div class="add"><input type="text" id="newName" placeholder="Add new university"><button id="addBtn">Add</button></div>
+<details style="margin-bottom:12px"><summary style="cursor:pointer;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:12px">📋 Bulk add (paste many universities)</summary>
+<textarea id="bulk" rows="6" placeholder="Har line mein ek university ka naam" style="width:100%;margin-top:8px;padding:12px;font-size:15px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text)"></textarea>
+<button id="bulkBtn" style="width:100%;margin-top:8px;padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer">Add all</button></details>
 <div id="list"></div>
-<div class="tools"><button id="reset">Reset all</button></div>
+<div class="tools"><button id="reset">Reset all</button><button onclick="exportData()">⬇ Backup</button><button onclick="document.getElementById('imp').click()">⬆ Restore</button><input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this.files[0])"></div>
 </div>
 <div id="profView" style="display:none">
 <div class="pform">
@@ -117,21 +120,41 @@ const firebaseConfig={
 let ref=null,synced=false;
 function seed(){return initial.map(n=>({n,d:n==="Wuhan University"}));}
 function setStatus(t){document.getElementById("status").textContent=t}
+function mirror(){try{localStorage.setItem(KEY+"_mirror",JSON.stringify({t:Date.now(),items:data}))}catch(e){}}
 function save(){
-if(!ref)return;
-ref.set({items:data}).then(()=>setStatus("🔥 Saved")).catch(e=>setStatus("⚠️ "+e.code));
+if(!ref||!synced){alert("Abhi data load ho raha hai, 2 second ruk kar dobara try karein.");return}
+mirror();
+ref.set({items:data}).then(()=>setStatus("🔥 Saved ("+data.length+" universities)")).catch(e=>setStatus("⚠️ "+e.code));
 }
 function load(){
-data=seed();
-if(false){setStatus("⚠️ Firebase config paste karein");render();return}
+data=[];
+setStatus("Loading data...");
+try{
 firebase.initializeApp(firebaseConfig);
 ref=firebase.firestore().collection("tracker").doc("main");
-setStatus("Connecting...");
+}catch(e){setStatus("⚠️ Firebase error");return}
 ref.onSnapshot(snap=>{
-if(snap.exists&&Array.isArray(snap.data().items)){data=snap.data().items}
-else if(!synced){ref.set({items:data})}
-synced=true;setStatus("🔥 Firebase synced");render();
+if(snap.exists&&snap.data()&&Array.isArray(snap.data().items)){
+data=snap.data().items;synced=true;mirror();
+setStatus("🔥 Synced ("+data.length+" universities)");
+}else{
+if(snap.metadata.fromCache){return}
+if(!synced){data=seed();synced=true;ref.set({items:data});setStatus("🔥 New database created")}
+}
+render();
 },e=>setStatus("⚠️ "+e.code));
+}
+function exportData(){
+const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+a.download="universities-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();
+}
+function importData(file){
+const r=new FileReader();
+r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d))throw 0;
+if(confirm("Backup restore karein? ("+d.length+" universities). Current data replace hoga.")){data=d;save();render()}
+}catch(e){alert("Ye valid backup file nahi hai")}};
+r.readAsText(file);
 }
 function fixLink(l){l=(l||"").trim();if(!l)return"";if(!/^https?:\/\//i.test(l))l="https://"+l;return l}
 const STATUS=["Pending","Sent","Replied","No reply"];
@@ -226,6 +249,12 @@ const u=data[Number(idx)];u.profs=u.profs||[];
 u.profs.push({name,link,s:"Pending"});
 document.getElementById("pName").value="";document.getElementById("pLink").value="";
 save();render();
+};
+document.getElementById("bulkBtn").onclick=()=>{
+const lines=document.getElementById("bulk").value.split("\n").map(x=>x.replace(/^\s*(\[[^\]]*\]\s*[^:]*:\s*)/,"").replace(/^[\s\-•*\d.)]+/,"").trim()).filter(Boolean);
+const have=new Set(data.map(u=>u.n.toLowerCase()));let add=0;
+lines.forEach(n=>{if(!have.has(n.toLowerCase())){data.push({n,d:false,profs:[]});have.add(n.toLowerCase());add++}});
+document.getElementById("bulk").value="";save();render();alert(add+" universities add hui ("+(lines.length-add)+" duplicate skip)");
 };
 load();render();
 </script>
