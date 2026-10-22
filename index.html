@@ -57,6 +57,8 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 .pform input,.pform select{margin:0;width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text)}
 .pform button{padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer}
 .pu{font-size:12px;color:var(--muted);margin-top:2px}
+.loc{font-size:12px;color:var(--accent);margin-top:2px;cursor:pointer}
+#cityFilter{width:100%;padding:11px 12px;font-size:15px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -72,11 +74,13 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 <div class="mtabs"><button class="mt active" data-v="uni">🎓 Universities</button><button class="mt" data-v="prof">👨‍🏫 Professors</button></div>
 <input type="text" id="search" placeholder="🔍 Search university or professor...">
 <div id="uniView">
+<select id="cityFilter"></select>
 <div class="tabs">
 <button class="tab active" data-f="all">All</button>
 <button class="tab" data-f="pending">Pending</button>
 <button class="tab" data-f="done">Complete</button>
 </div>
+<input type="text" id="newLoc" placeholder="Location (city, province) - optional">
 <div class="add"><input type="text" id="newName" placeholder="Add new university"><button id="addBtn">Add</button></div>
 <details style="margin-bottom:12px"><summary style="cursor:pointer;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:12px">📋 Bulk add (paste many universities)</summary>
 <textarea id="bulk" rows="6" placeholder="Har line mein ek university ka naam" style="width:100%;margin-top:8px;padding:12px;font-size:15px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text)"></textarea>
@@ -156,17 +160,31 @@ if(confirm("Backup restore karein? ("+d.length+" universities). Current data rep
 }catch(e){alert("Ye valid backup file nahi hai")}};
 r.readAsText(file);
 }
+const LOC={"Xi'an Jiaotong University":"Xi'an, Shaanxi","Hefei University of Technology":"Hefei, Anhui","Beijing Institute of Technology":"Beijing","Fudan University":"Shanghai","Nanjing University of Aeronautics and Astronautics":"Nanjing, Jiangsu","China University of Mining and Technology":"Xuzhou, Jiangsu","Wuhan University":"Wuhan, Hubei","Northeastern University":"Shenyang, Liaoning","Sichuan University":"Chengdu, Sichuan","Shanghai Maritime University":"Shanghai","Huazhong University of Science and Technology":"Wuhan, Hubei","University of Science and Technology of China (USTC)":"Hefei, Anhui","Northwest University (NWU)":"Xi'an, Shaanxi","Jiangsu University (JSU)":"Zhenjiang, Jiangsu","Shandong University of Finance and Economics (SDUFE)":"Jinan, Shandong","Zhejiang University of Finance and Economics (ZUFE)":"Hangzhou, Zhejiang","Dongbei University of Finance and Economics (DUFE)":"Dalian, Liaoning","Southwestern University of Finance and Economics (SWUFE)":"Chengdu, Sichuan","Anhui University of Finance and Economics (AUFE)":"Bengbu, Anhui","Tianjin University of Finance and Economics":"Tianjin","Nanjing University of Science and Technology":"Nanjing, Jiangsu","Nanjing University of Information Science and Technology (NUIST)":"Nanjing, Jiangsu","Capital University of Economics and Business":"Beijing","Shanghai University of Finance and Economics":"Shanghai","Central University of Finance and Economics (CUFE)":"Beijing","Dalian University of Technology":"Dalian, Liaoning","Chongqing University":"Chongqing","Tsinghua University":"Beijing","Hubei University of Economics (HBU)":"Wuhan, Hubei","Tongji University":"Shanghai","Central South University":"Changsha, Hunan","Tianjin University":"Tianjin","Zhejiang University":"Hangzhou, Zhejiang","Beihang University":"Beijing","Nanjing Audit University":"Nanjing, Jiangsu","Liaoning University":"Shenyang, Liaoning","Xiamen University":"Xiamen, Fujian","Shanghai University":"Shanghai","Renmin University of China":"Beijing","Peking University":"Beijing","Jinan University":"Guangzhou, Guangdong","Hunan University":"Changsha, Hunan","Zhongnan University of Economics and Law":"Wuhan, Hubei","Jilin University":"Changchun, Jilin","Shanxi University of Finance and Economics":"Taiyuan, Shanxi","East China Normal University":"Shanghai","Beijing Technology and Business University":"Beijing","Harbin University of Commerce":"Harbin, Heilongjiang","Nanjing University of Finance and Economics":"Nanjing, Jiangsu","Chongqing Technology and Business University":"Chongqing","Northeast Normal University":"Changchun, Jilin"};
+function locOf(u){return u.loc!==undefined?u.loc:(LOC[u.n]||"")}
+function cityOf(u){return locOf(u).split(",")[0].trim()}
+let cityF="";
 function fixLink(l){l=(l||"").trim();if(!l)return"";if(!/^https?:\/\//i.test(l))l="https://"+l;return l}
 const STATUS=["Pending","Sent","Replied","No reply"];
 let view="uni",pf="all";
 function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
 function allProfs(){const a=[];data.forEach(u=>{u.profs=u.profs||[];u.profs.forEach((p,pi)=>a.push({u,p,pi}))});return a}
+function fillCity(){
+const sel=document.getElementById("cityFilter");
+const cities=[...new Set(data.map(cityOf).filter(Boolean))].sort();
+sel.innerHTML="";
+const o0=el("option",null,"📍 All locations");o0.value="";sel.appendChild(o0);
+cities.forEach(c=>{const o=el("option",null,c+" ("+data.filter(u=>cityOf(u)===c).length+")");o.value=c;sel.appendChild(o)});
+sel.value=cities.includes(cityF)?cityF:"";cityF=sel.value;
+}
 function renderUni(q){
+fillCity();
 const list=document.getElementById("list");list.innerHTML="";
 let shown=0;
 data.forEach((u,i)=>{
 u.profs=u.profs||[];
-if(q&&!u.n.toLowerCase().includes(q))return;
+if(q&&!u.n.toLowerCase().includes(q)&&!locOf(u).toLowerCase().includes(q))return;
+if(cityF&&cityOf(u)!==cityF)return;
 if(filter==="pending"&&u.d)return;
 if(filter==="done"&&!u.d)return;
 shown++;
@@ -177,6 +195,9 @@ const nmWrap=el("div");nmWrap.style.flex="1";
 const nm=el("span","name",u.n);
 nm.onclick=()=>{u.d=!u.d;save();render()};
 nmWrap.appendChild(nm);
+const lc=el("div","loc","📍 "+(locOf(u)||"Add location"));
+lc.onclick=()=>{const v=prompt("Location (city, province):",locOf(u));if(v!==null){u.loc=v.trim();save();render()}};
+nmWrap.appendChild(lc);
 if(u.profs.length){const r=u.profs.filter(p=>p.s==="Replied").length;nmWrap.appendChild(el("div","badge","👨‍🏫 "+u.profs.length+" · ✅ "+r+" replied"))}
 const del=el("button","del","🗑️");
 del.onclick=()=>{if(confirm("Delete this university?\n\n"+u.n)){data.splice(i,1);save();render()}};
@@ -204,7 +225,7 @@ n++;
 const box=el("div","prof s-"+st.replace(" ",""));
 const top=el("div","top");
 const info=el("div");info.style.flex="1";
-info.append(el("div","pn",p.name||"(no name)"),el("div","pu","🎓 "+u.n));
+info.append(el("div","pn",p.name||"(no name)"),el("div","pu","🎓 "+u.n+(locOf(u)?" · 📍 "+locOf(u):"")));
 const pd=el("button","pdel","✕");
 pd.onclick=()=>{if(confirm("Delete professor?\n\n"+p.name)){u.profs.splice(pi,1);save();render()}};
 top.append(info,pd);box.appendChild(top);
@@ -234,10 +255,11 @@ document.getElementById("sLeft").textContent=all.length;
 document.getElementById("sReply").textContent=all.filter(x=>x.p.s==="Replied").length;
 }
 document.getElementById("search").oninput=render;
+document.getElementById("cityFilter").onchange=e=>{cityF=e.target.value;render()};
 document.querySelectorAll(".mt").forEach(b=>b.onclick=()=>{view=b.dataset.v;document.getElementById("search").value="";render()});
 document.querySelectorAll("#uniView .tab").forEach(t=>t.onclick=()=>{document.querySelectorAll("#uniView .tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");filter=t.dataset.f;render()});
 document.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{pf=c.dataset.s;render()});
-document.getElementById("addBtn").onclick=()=>{const v=document.getElementById("newName").value.trim();if(!v)return;data.push({n:v,d:false,profs:[]});document.getElementById("newName").value="";save();render()};
+document.getElementById("addBtn").onclick=()=>{const v=document.getElementById("newName").value.trim();if(!v)return;data.push({n:v,d:false,profs:[],loc:document.getElementById("newLoc").value.trim()||(LOC[v]||"")});document.getElementById("newName").value="";document.getElementById("newLoc").value="";save();render()};
 document.getElementById("reset").onclick=()=>{if(confirm("Mark all universities as pending?")){data.forEach(u=>u.d=false);save();render()}};
 document.getElementById("pAdd").onclick=()=>{
 const idx=document.getElementById("pUni").value;
