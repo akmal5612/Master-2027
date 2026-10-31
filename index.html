@@ -86,7 +86,7 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 <textarea id="bulk" rows="6" placeholder="Har line mein ek university ka naam" style="width:100%;margin-top:8px;padding:12px;font-size:15px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text)"></textarea>
 <button id="bulkBtn" style="width:100%;margin-top:8px;padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer">Add all</button></details>
 <div id="list"></div>
-<div class="tools"><button id="reset">Reset all</button><button onclick="exportData()">⬇ Backup</button><button onclick="document.getElementById('imp').click()">⬆ Restore</button><input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this.files[0])"></div>
+<div class="tools"><button id="reset">Reset all</button><button id="delAll" style="color:#e5484d;border-color:#e5484d55">🗑️ Delete all</button><button onclick="exportData()">⬇ Backup</button><button onclick="document.getElementById('imp').click()">⬆ Restore</button><input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this.files[0])"></div>
 </div>
 <div id="profView" style="display:none">
 <div class="pform">
@@ -277,6 +277,14 @@ const lines=document.getElementById("bulk").value.split("\n").map(x=>x.replace(/
 const have=new Set(data.map(u=>u.n.toLowerCase()));let add=0;
 lines.forEach(n=>{if(!have.has(n.toLowerCase())){data.push({n,d:false,profs:[]});have.add(n.toLowerCase());add++}});
 document.getElementById("bulk").value="";save();render();alert(add+" universities add hui ("+(lines.length-add)+" duplicate skip)");
+};
+document.getElementById("delAll").onclick=()=>{
+if(!data.length){alert("List pehle se khali hai");return}
+if(!confirm("Saari "+data.length+" universities (aur unke professors) delete hongi.\n\nPehle ek backup file download hogi. Continue?"))return;
+const t=prompt("Confirm karne ke liye DELETE likhein:");
+if(t===null||t.trim().toUpperCase()!=="DELETE"){alert("Cancel ho gaya, kuch delete nahi hua");return}
+exportData();
+data=[];save();render();
 };
 load();render();
 </script>
