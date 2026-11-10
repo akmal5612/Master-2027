@@ -59,6 +59,7 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 .pu{font-size:12px;color:var(--muted);margin-top:2px}
 .loc{font-size:12px;color:var(--accent);margin-top:2px;cursor:pointer}
 #cityFilter{width:100%;padding:11px 12px;font-size:15px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);margin-bottom:10px}
+.tools{flex-wrap:wrap}.tools button{min-width:45%}.dl{display:flex;gap:8px;margin:0 0 12px}.dl button{flex:1;padding:11px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;font-size:15px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -82,6 +83,7 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 </div>
 <input type="text" id="newLoc" placeholder="Location (city, province) - optional">
 <div class="add"><input type="text" id="newName" placeholder="Add new university"><button id="addBtn">Add</button></div>
+<div class="dl"><button onclick="exportExcel()">📊 Download Excel</button><button onclick="exportDoc()">📄 Download Doc</button></div>
 <details style="margin-bottom:12px"><summary style="cursor:pointer;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:12px">📋 Bulk add (paste many universities)</summary>
 <textarea id="bulk" rows="6" placeholder="Har line mein ek university ka naam" style="width:100%;margin-top:8px;padding:12px;font-size:15px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text)"></textarea>
 <button id="bulkBtn" style="width:100%;margin-top:8px;padding:12px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;cursor:pointer">Add all</button></details>
@@ -107,6 +109,7 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const initial=["Xi'an Jiaotong University","Hefei University of Technology","Beijing Institute of Technology","Fudan University","Nanjing University of Aeronautics and Astronautics","China University of Mining and Technology","Wuhan University","Northeastern University","Sichuan University","Shanghai Maritime University","Huazhong University of Science and Technology","University of Science and Technology of China (USTC)","Northwest University (NWU)","Jiangsu University (JSU)","Shandong University of Finance and Economics (SDUFE)","Zhejiang University of Finance and Economics (ZUFE)","Dongbei University of Finance and Economics (DUFE)","Southwestern University of Finance and Economics (SWUFE)","Anhui University of Finance and Economics (AUFE)","Tianjin University of Finance and Economics","Nanjing University of Science and Technology","Nanjing University of Information Science and Technology (NUIST)","Capital University of Economics and Business","Shanghai University of Finance and Economics","Central University of Finance and Economics (CUFE)","Dalian University of Technology","Chongqing University","Tsinghua University","Hubei University of Economics (HBU)","Tongji University","Central South University","Tianjin University","Zhejiang University","Beihang University","Nanjing Audit University","Liaoning University","Xiamen University"];
 const KEY="uniTracker_v1";
@@ -147,6 +150,34 @@ if(!synced){data=seed();synced=true;ref.set({items:data});setStatus("🔥 New da
 }
 render();
 },e=>setStatus("⚠️ "+e.code));
+}
+function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function stamp(){return new Date().toISOString().slice(0,10)}
+function rowsUni(){return data.map((u,i)=>{const pr=u.profs||[];return{"No":i+1,"University":u.n,"Location":locOf(u),"Status":u.d?"Complete":"Pending","Professors":pr.length,"Replies":pr.filter(p=>p.s==="Replied").length}})}
+function rowsProf(){const a=[];data.forEach(u=>(u.profs||[]).forEach(p=>a.push({"Professor":p.name||"","University":u.n,"Location":locOf(u),"Profile Link":fixLink(p.link),"Status":p.s||"Pending"})));return a}
+function exportExcel(){
+if(typeof XLSX==="undefined"){alert("Excel library load nahi hui. Internet check karke page refresh karein.");return}
+if(!data.length){alert("List khali hai");return}
+const wb=XLSX.utils.book_new();
+const w1=XLSX.utils.json_to_sheet(rowsUni());
+w1["!cols"]=[{wch:5},{wch:60},{wch:24},{wch:12},{wch:11},{wch:9}];
+XLSX.utils.book_append_sheet(wb,w1,"Universities");
+const pr=rowsProf();
+const w2=XLSX.utils.json_to_sheet(pr.length?pr:[{"Professor":"","University":"","Location":"","Profile Link":"","Status":""}]);
+w2["!cols"]=[{wch:28},{wch:50},{wch:22},{wch:50},{wch:12}];
+XLSX.utils.book_append_sheet(wb,w2,"Professors");
+XLSX.writeFile(wb,"universities-"+stamp()+".xlsx");
+}
+function tbl(rows){
+if(!rows.length)return"<p>No data</p>";
+const k=Object.keys(rows[0]);
+return '<table border="1" cellspacing="0" cellpadding="5" style="border-collapse:collapse;font-size:11pt"><tr>'+k.map(x=>'<th style="background:#e8eefc">'+esc(x)+'</th>').join("")+'</tr>'+rows.map(r=>'<tr>'+k.map(x=>'<td>'+esc(r[x])+'</td>').join("")+'</tr>').join("")+'</table>';
+}
+function exportDoc(){
+if(!data.length){alert("List khali hai");return}
+const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>University List</title></head><body style="font-family:Calibri,Arial"><h2>University List ('+data.length+')</h2><p>Date: '+stamp()+'</p>'+tbl(rowsUni())+'<h2>Professors ('+rowsProf().length+')</h2>'+tbl(rowsProf())+'</body></html>';
+const blob=new Blob(["\ufeff"+html],{type:"application/msword"});
+const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="universities-"+stamp()+".doc";a.click();
 }
 function exportData(){
 const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
