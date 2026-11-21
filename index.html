@@ -60,6 +60,39 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 .loc{font-size:12px;color:var(--accent);margin-top:2px;cursor:pointer}
 #cityFilter{width:100%;padding:11px 12px;font-size:15px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);margin-bottom:10px}
 .tools{flex-wrap:wrap}.tools button{min-width:45%}.dl{display:flex;gap:8px;margin:0 0 12px}.dl button{flex:1;padding:11px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:12px;font-size:15px;cursor:pointer}
+#aiView .sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+#aiView .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+#aiView textarea{width:100%;min-height:180px;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);resize:vertical;font-family:inherit}
+#aiView .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+#aiView button{padding:11px 16px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:15px;cursor:pointer}
+#aiView button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;flex:1}
+#aiView .cnt{margin-left:auto;font-size:13px;color:var(--muted)}
+#aiView #aiRes{display:none}
+#aiView .score{display:flex;align-items:center;gap:14px}
+#aiView .big{font-size:46px;font-weight:700;line-height:1}
+#aiView .verdict{font-size:16px;font-weight:600}
+#aiView .bar{height:10px;border-radius:6px;background:var(--line);overflow:hidden;margin:6px 0 2px}
+#aiView .bar>i{display:block;height:100%;border-radius:6px}
+#aiView .m{margin-bottom:14px}
+#aiView .mh{display:flex;justify-content:space-between;font-size:14px;font-weight:600}
+#aiView .md{font-size:12.5px;color:var(--muted)}
+#aiView .hl{font-size:15px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+#aiView mark{background:var(--hl);color:inherit;border-radius:4px;padding:0 2px}
+#aiView .uni{border-bottom:2px dotted var(--bad)}
+#aiView .legend{font-size:12px;color:var(--muted);margin-bottom:8px}
+#aiView .warn{font-size:12.5px;color:var(--muted);border-left:3px solid var(--warn);padding-left:10px}
+#aiView ul{margin:6px 0 0;padding-left:18px;font-size:14px}
+#aiView h2{font-size:16px;margin:0 0 10px}
+#aiView{--good:#1f9d55;--warn:#e08a1e;--bad:#e5484d;--hl:#ffe3a3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #aiView{--good:#3ecf7a;--warn:#f0a73a;--bad:#ff6b70;--hl:#5a4515}}
+.mt{font-size:13px!important;padding:10px 4px!important}
+#aiView .info p{margin:6px 0 12px;font-size:14px}
+#aiView .info h3{font-size:14.5px;margin:12px 0 2px;color:var(--accent)}
+#aiView .ex{border-left:4px solid var(--line);padding:8px 10px;margin:8px 0;font-size:13.5px;background:var(--bg);border-radius:0 8px 8px 0}
+#aiView .ex.a{border-color:var(--bad)}
+#aiView .ex.h{border-color:var(--good)}
+#aiView .ex small{display:block;color:var(--muted);margin-top:4px}
+#aiView .ex b.t{display:block;font-size:12px;margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -72,7 +105,7 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 <div class="stat"><b id="sLeft">0</b><span>Professors</span></div>
 <div class="stat"><b id="sReply">0</b><span>Replies</span></div>
 </div>
-<div class="mtabs"><button class="mt active" data-v="uni">🎓 Universities</button><button class="mt" data-v="prof">👨‍🏫 Professors</button></div>
+<div class="mtabs"><button class="mt active" data-v="uni">🎓 Universities</button><button class="mt" data-v="prof">👨‍🏫 Professors</button><button class="mt" data-v="ai">🔍 AI Check</button></div>
 <input type="text" id="search" placeholder="🔍 Search university or professor...">
 <div id="uniView">
 <select id="cityFilter"></select>
@@ -105,6 +138,54 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 <button class="chip tab" data-s="No reply">No reply</button>
 </div>
 <div id="plist"></div>
+</div>
+<div id="aiView" style="display:none">
+<p class="sub">Text paste karein, tool predictability, rhythm aur AI clichés check karke andaza deta hai.</p>
+<div class="card">
+<textarea id="aiInp" placeholder="Yahan apna text paste karein (kam az kam 40 words)..."></textarea>
+<div class="row">
+<button class="primary" id="aiGo">Analyze</button>
+<button id="aiS1">AI sample</button>
+<button id="aiS2">Human sample</button>
+<button id="aiClr">Clear</button>
+<span class="cnt" id="aiCnt">0 words</span>
+<div class="card info">
+<h2>AI Detector Kin Cheezon Ko Dekhta Hai?</h2>
+<h3>1. Predictability</h3><p>Kya agla word bohat aasani se predict kiya ja sakta hai? AI writing mein aam tor par predictable wording hoti hai.</p>
+<h3>2. Sentence Structure</h3><p>Kya har sentence ka structure ek jaisa hai, ya sentences mein natural variation hai?</p>
+<h3>3. Vocabulary Patterns</h3><p>Kya paper mein baar baar ek hi academic vocabulary aur phrases use ho rahe hain?</p>
+<h3>4. Repetitive Language</h3><p>Kya ek hi idea ko mukhtalif paragraphs mein repeat kiya gaya hai?</p>
+<h3>5. Writing Consistency</h3><p>Kya poore paper ka writing style unusually consistent hai?</p>
+<h3>6. Sentence Length Variation</h3><p>Kya tamam sentences lagbhag ek hi length ke hain, ya short aur long sentences naturally mix hain?</p>
+<h3>7. Generic Academic Language</h3><p>Kya writing mein bohat zyada general academic statements hain jo kisi bhi research paper mein fit ho sakte hain?</p>
+<h3>8. Paragraph Patterns</h3><p>Kya har paragraph ek hi formula follow karta hai, jaise claim, explanation aur conclusion?</p>
+<h3>9. Linguistic Patterns</h3><p>Kya words aur sentences ka combination AI-generated text ke statistical patterns se milta hai?</p>
+<h3>10. Contextual Specificity</h3><p>Kya research mein specific data, actual findings, relevant literature aur evidence-based discussion hai?</p>
+<h3>Aik aasan misal</h3>
+<div class="ex a"><b class="t">AI-like flow</b>Digital payments are rapidly transforming modern economies. Furthermore, they enhance financial inclusion and improve transaction efficiency. Consequently, policymakers must strengthen regulatory frameworks.<small>Har jumla taqreeban aik hi wazan aur smooth linking word ke sath chal raha hai.</small></div>
+<div class="ex h"><b class="t">Zyada insani / natural flow</b>Raast ne chhoti transactions mein raftaar to barha di, lekin ground level par ab bhi agent liquidity aur user awareness dono baray sawal hain.<small>Seedhi baat, specific context, aur aam bol-chal / analytical tone ka mix.</small></div>
+<div class="ex a"><b class="t">AI-like (BBA Finance)</b>The banking sector plays a pivotal role in fostering sustainable growth. Moreover, a robust framework for risk mitigation is paramount. In conclusion, key stakeholders must adopt a holistic approach.</div>
+<div class="ex h"><b class="t">Natural (BBA Finance)</b>SBP ne policy rate 22% par rakha to class mein sab ko laga KIBOR neeche aayega, magar mere internship wale bank mein ab bhi SME loans par collateral ka masla hai. To sawal ye hai: itni mehngi financing mein chhota karobari kyun karza le?</div>
+<h3>Sab se aham baat: ye "pata chalna" nahi, "andaza" hai</h3>
+<p>AI detector 100% yaqeen se nahi kehta ke "yeh AI ne likha hai". Woh sirf ek score / probability deta hai (maslan 65% ya 20%). Galtiyan dono taraf hoti hain: insaan ka apna saaf, formal aur structured text (jaise finance report) bhi AI score barha sakta hai, aur edit kiya hua AI text jisme real data aur observations hon, human lag sakta hai.</p>
+</div>
+
+</div>
+</div>
+
+<div id="aiRes">
+<div class="card">
+<div class="score"><div class="big" id="aiNum">0%</div><div><div class="verdict" id="aiVer"></div><div class="md">AI-like pattern score (andaza, saboot nahi)</div></div></div>
+<div class="bar"><i id="aiBar"></i></div>
+</div>
+<div class="card"><h2>Breakdown</h2><div id="aiMets"></div></div>
+<div class="card"><h2>Flagged text</h2>
+<div class="legend"><mark>highlight</mark> = AI cliché / transition &nbsp; <span class="uni">dotted</span> = lagatar ek jaisi length ke jumlay</div>
+<div class="hl" id="aiHl"></div></div>
+<div class="card"><h2>Natural banane ke tips</h2><ul id="aiTips"></ul></div>
+<div class="card warn"><b>Zaroori:</b> Ye tool 100% yaqeen se nahi bata sakta ke text AI ne likha hai. Ye sirf patterns ka andaza hai. Insani formal likhai ka score bhi zyada aa sakta hai, aur edit kiya hua AI text kam. Isay kisi par ilzaam ya fail/pass ka faisla karne ke liye saboot na banayein.</div>
+</div>
+
 </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -275,9 +356,12 @@ function render(){
 const q=document.getElementById("search").value.trim().toLowerCase();
 document.getElementById("uniView").style.display=view==="uni"?"block":"none";
 document.getElementById("profView").style.display=view==="prof"?"block":"none";
+document.getElementById("aiView").style.display=view==="ai"?"block":"none";
+document.getElementById("search").style.display=view==="ai"?"none":"block";
+document.querySelector(".stats").style.display=view==="ai"?"none":"flex";
 document.querySelectorAll(".mt").forEach(b=>b.classList.toggle("active",b.dataset.v===view));
 document.getElementById("search").placeholder=view==="uni"?"🔍 Search university...":"🔍 Search professor or university...";
-if(view==="uni")renderUni(q);else renderProf(q);
+if(view==="uni")renderUni(q);else if(view==="prof")renderProf(q);
 const all=allProfs();
 const done=data.filter(x=>x.d).length;
 document.getElementById("sTotal").textContent=data.length;
@@ -317,6 +401,128 @@ if(t===null||t.trim().toUpperCase()!=="DELETE"){alert("Cancel ho gaya, kuch dele
 exportData();
 data=[];save();render();
 };
+(function(){
+const CL=["moreover","furthermore","additionally","consequently","in conclusion","it is important to note","it is worth noting","in today's","in today’s","plays a crucial role","a testament to","delve","navigate the","landscape","on the other hand","on one hand","in summary","in the realm of","tapestry","pivotal","seamless","leverage","fostering","underscores","transformative","paramount","comprehensive","not only","as a result","thus,","hence,","therefore,","rapidly transforming","iske ilawa","lehaza","nateejatan","aakhir mein","khulasa yeh","financial landscape","risk mitigation","key stakeholders","holistic approach","sustainable growth","ever-evolving","dynamic world of finance","pivotal role","robust framework","regulatory frameworks","drive growth","streamline","ahem kirdar ada","mukhtasar yeh ke"];
+const GEN=["in recent years","has gained","significant attention","it is widely","widely recognized","numerous studies","various factors","wide range of","important to consider","growing body of","has become increasingly","plays a crucial","plays a vital","plays an important","a variety of","different aspects","in many ways","play a key role","is essential for","is crucial for","in the modern world","across different"];
+const ACAD=["significant","analysis","framework","approach","impact","factors","development","research","study","examines","highlights","demonstrates","implications","context","various","crucial","essential","effective","overall","enhance","improve","efficiency","sustainable","comprehensive","strategic","potential","key","important","role","growth","stakeholders","regulatory"];
+const CONC=/^(therefore|thus|hence|consequently|in conclusion|overall|in summary|as a result|ultimately|lehaza|nateejatan|khulasa)/i;
+const STOP=new Set("the a an and or of to in on for with is are was were be been it this that these those as by at from can may will not but also which their its they them than then there into over such more most other some any all each both about between through during after before while where who what when why how very just only same too so if our your has have had do does did aur ka ki ke hai hain tha thi ko se mein par ye wo".split(" "));
+const mk=a=>new RegExp("("+a.map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|")+")","gi");
+const RC=mk(CL),RG=mk(GEN),RE=mk(CL.concat(GEN));
+const ACS=new Set(ACAD);
+const HUM=/\b(i|my|me|we|our|mera|meri|mujhe|main|hum|humein|maine|humne|mere|hamare)\b/gi;
+const AI_S="Digital banking is rapidly transforming Pakistan's financial landscape. Furthermore, mobile wallets enhance financial inclusion and improve transaction efficiency. Consequently, the State Bank must strengthen regulatory frameworks. Therefore, the banking sector plays a pivotal role in sustainable growth.\n\nMoreover, it is important to note that fintech has gained significant attention in recent years. Various factors influence the adoption of digital services across different stakeholders. Consequently, a holistic approach to risk mitigation is essential. In conclusion, a robust framework is paramount for the banking sector.";
+const HU_S="SBP ne policy rate 22% par rakha to humare class ke zyada tar log samajh rahe the ke KIBOR neeche aayega, lekin Meezan Bank ke aik branch manager ne mujhe bataya ke SME loans ab bhi 3 se 4 mahine mein approve ho rahe hain (collateral ka masla alag). Sawal ye hai: jab financing itni mehngi ho, to chhota karobari kyun karza le?\n\nMere internship wale bank (HBL, Gulberg branch) mein maine dekha ke NPL ratio 8.4% tha. Yani recovery ka masla sirf ratio ka nahi, customer ke bharose ka bhi hai. Ye baat textbook mein nahi milti.";
+const FIN=/\b(pkr|rs|sbp|kibor|psx|kse|raast|hbl|mcb|ubl|meezan|easypaisa|jazzcash|fbr|secp|ipo|eps|roe|npl|engro|lucky|internship)\b/gi;
+const $=id=>document.getElementById(id);
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const words=s=>(s.toLowerCase().match(/[\p{L}'’]+/gu)||[]);
+
+function analyze(t){
+  const paras=t.split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean);
+  const split=p=>(p.match(/[^.!?۔\n]+[.!?۔]*/g)||[]).map(x=>x.trim()).filter(x=>words(x).length>0);
+  const pS=paras.map(split);
+  const sents=[].concat(...pS),n=sents.length;
+  const lens=sents.map(x=>words(x).length);
+  const mean=lens.reduce((a,b)=>a+b,0)/n;
+  const sd=a=>{const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/a.length)};
+  const cv=sd(lens)/mean;
+  const rhythm=clamp((0.6-cv)/0.35)*100;
+  const uni=lens.map((l,i)=>i>0&&Math.abs(l-lens[i-1])/Math.max(l,lens[i-1])<=0.2);
+  const flag=sents.map(()=>false);
+  uni.forEach((u,i)=>{if(u&&uni[i-1]){flag[i]=flag[i-1]=flag[i-2]=true}});
+  const ur=uni.filter(Boolean).length/Math.max(1,n-1);
+  const starts={};sents.forEach(x=>{const w=words(x)[0];starts[w]=(starts[w]||0)+1});
+  const sr=Math.max(...Object.values(starts))/n;
+  const struct=0.7*clamp((ur-0.25)/0.35)*100+0.3*clamp((sr-0.2)/0.3)*100;
+  const w=words(t),win=Math.min(50,w.length);let tot=0,c=0;
+  for(let i=0;i+win<=w.length;i+=10){tot+=new Set(w.slice(i,i+win)).size/win;c++}
+  const mattr=tot/c;
+  const tri={};let rep=0;for(let i=0;i<w.length-2;i++){const k=w.slice(i,i+3).join(" ");if(tri[k])rep++;tri[k]=1}
+  const pred=0.7*clamp((0.8-mattr)/0.2)*100+0.3*clamp(rep/w.length*8)*100;
+  const cl=(t.match(RC)||[]).length,gen=(t.match(RG)||[]).length;
+  const acad=w.filter(x=>ACS.has(x)).length/w.length;
+  const vocab=0.5*clamp(acad/0.09)*100+0.5*clamp((cl/n)/0.45)*100;
+  const generic=clamp((gen/n)/0.3)*100;
+  let chunks=pS;
+  if(paras.length<3){chunks=[];for(let i=0;i<n;i+=2)chunks.push(sents.slice(i,i+2))}
+  const cw=chunks.map(ch=>new Set(words(ch.join(" ")).filter(x=>x.length>4&&!STOP.has(x))));
+  let repet=null;
+  if(chunks.length>=2){let sj=0,k=0;for(let i=0;i<cw.length;i++)for(let j=i+1;j<cw.length;j++){const a=cw[i],b=cw[j];let it=0;a.forEach(x=>{if(b.has(x))it++});const u=a.size+b.size-it;if(u)sj+=it/u;k++}
+    repet=clamp((sj/k-0.06)/0.14)*100}
+  let consist=null,ccv=0;
+  if(chunks.length>=3){const ml=chunks.map(ch=>ch.reduce((a,x)=>a+words(x).length,0)/ch.length);ccv=sd(ml)/(ml.reduce((a,b)=>a+b,0)/ml.length);consist=clamp((0.3-ccv)/0.22)*100}
+  const pp=pS.filter(a=>a.length>=2);let para=null;
+  if(pp.length){const fr=pp.filter(a=>CONC.test(a[a.length-1])).length/pp.length*100;
+    if(pp.length>=3){const pc=pp.map(a=>a.length);para=0.7*fr+0.3*clamp((0.3-sd(pc)/(pc.reduce((a,b)=>a+b,0)/pc.length))/0.25)*100}else para=fr}
+  const ling=(pred+rhythm+struct+vocab)/4;
+  const hs=(t.match(HUM)||[]).length+(t.match(FIN)||[]).length+(t.match(/\d+/g)||[]).length+(t.match(/[?!()—]/g)||[]).length+(t.match(/\w['’]\w/g)||[]).length+(t.match(/[a-z,;]\s+[A-Z][a-z]{2,}/g)||[]).length+3*(t.match(/\([A-Z][A-Za-z]+(?: et al\.)?,?\s*\d{4}\)|\[\d+\]/g)||[]).length;
+  const spec=clamp(hs/(n*1.0))*100;
+  const parts=[[pred,.12],[struct,.10],[vocab,.16],[repet,.08],[consist,.08],[rhythm,.14],[generic,.12],[para,.08],[ling,.12]];
+  let sw=0,sv=0;parts.forEach(([v,wt])=>{if(v!==null){sw+=wt;sv+=v*wt}});
+  const final=clamp((sv/sw-0.2*spec)/100)*100;
+  const NA="Text chhota hai, is ke liye kam az kam 2-3 paragraphs ya 6+ jumlay chahiye.";
+  return{sents,flag,final,spec,m:[
+   ["1. Predictability",pred,"Lafzon ki variety aur dohrao. Kam variety = agla lafz asaani se predict hota hai."],
+   ["2. Sentence Structure",struct,"Kya jumlay ek jaisi banawat ya ek hi lafz se shuru hote hain."],
+   ["3. Vocabulary Patterns",vocab,"Baar baar academic words aur AI phrases ("+cl+" cliché mile)."],
+   ["4. Repetitive Language",repet,repet===null?NA:"Kya wahi idea alag hisson/paragraphs mein dohraya gaya."],
+   ["5. Writing Consistency",consist,consist===null?NA:"Poore text ka style unusually yaksan to nahi (variation: "+ccv.toFixed(2)+")."],
+   ["6. Sentence Length Variation",rhythm,"Chhote aur lambay jumlon ka mix. (variation: "+cv.toFixed(2)+")"],
+   ["7. Generic Academic Language",generic,gen+" aisay aam academic jumlay mile jo kisi bhi paper mein fit ho jayen."],
+   ["8. Paragraph Patterns",para,para===null?"Kam az kam aik paragraph mein 2+ jumlay chahiye.":"Kya har paragraph claim, explanation phir conclusion wale formula par hai."],
+   ["9. Linguistic Patterns",ling,"Upar ke statistical patterns ka mila jula andaza (AI jaisi shakal se kitna milta hai)."],
+   ["10. Contextual Specificity",spec,"Data, numbers, naam, references aur apna tajurba. Yahan ZYADA score behtar hai."]
+  ]};
+}
+const col=v=>v>=60?"var(--bad)":v>=30?"var(--warn)":"var(--good)";
+function aiRender(r){
+  $("aiRes").style.display="block";
+  const f=Math.round(r.final);
+  $("aiNum").textContent=f+"%";$("aiNum").style.color=col(f);
+  $("aiVer").textContent=f<30?"Mostly human-like":f<60?"Mixed / uncertain":"AI-like pattern";
+  const b=$("aiBar");b.style.width=f+"%";b.style.background=col(f);
+  $("aiMets").innerHTML="";
+  r.m.forEach((m,i)=>{
+    const na=m[1]===null,v=na?0:Math.round(m[1]),d=document.createElement("div");d.className="m";
+    const c=na?"var(--line)":i===9?(v>=40?"var(--good)":"var(--warn)"):col(v);
+    d.innerHTML='<div class="mh"><span></span><span>'+(na?"N/A":v+"%")+'</span></div><div class="bar"><i style="width:'+v+'%;background:'+c+'"></i></div><div class="md"></div>';
+    d.querySelector("span").textContent=m[0];d.querySelector(".md").textContent=m[2];
+    $("aiMets").appendChild(d);
+  });
+  const h=$("aiHl");h.innerHTML="";
+  r.sents.forEach((s,i)=>{
+    const sp=document.createElement("span");if(r.flag[i])sp.className="uni";
+    let last=0,m;RE.lastIndex=0;
+    while((m=RE.exec(s))){
+      sp.append(s.slice(last,m.index));
+      const mk=document.createElement("mark");mk.textContent=m[0];sp.append(mk);last=m.index+m[0].length;
+    }
+    sp.append(s.slice(last)+" ");h.appendChild(sp);
+  });
+  const M=r.m.map(x=>x[1]),tips=[];
+  if(M[2]>=30||M[6]>=30)tips.push("Moreover/Furthermore aur aam academic jumlay hata kar seedhi, specific baat likhein.");
+  if(M[5]>=40)tips.push("Aik lamba jumla likhein, phir aik chhota. Length mein farq rakhein.");
+  if(M[1]>=40)tips.push("Jumlon ko alag alag lafz aur alag banawat se shuru karein.");
+  if(M[0]>=40)tips.push("Aam lafzon ki jagah apne specific lafz ya misal use karein.");
+  if(M[3]!==null&&M[3]>=40)tips.push("Wahi idea dobara na likhein; har paragraph mein nayi baat layein.");
+  if(M[7]!==null&&M[7]>=50)tips.push("Har paragraph ko 'claim, explanation, conclusion' ke formula par band na karein.");
+  if(M[9]<40)tips.push("Asli data (jaise ROE, EPS, NPL ratio), kisi company ka naam, SBP/SECP/PSX ka reference aur apna tajurba shamil karein.");
+  if(!tips.length)tips.push("Text pehle hi natural lag raha hai.");
+  $("aiTips").innerHTML="";tips.forEach(x=>{const li=document.createElement("li");li.textContent=x;$("aiTips").appendChild(li)});
+  $("aiRes").scrollIntoView({behavior:"smooth"});
+}
+$("aiInp").oninput=()=>{$("aiCnt").textContent=words($("aiInp").value).length+" words"};
+$("aiGo").onclick=()=>{
+  const t=$("aiInp").value.trim();
+  if(words(t).length<40){alert("Kam az kam 40 words paste karein, warna andaza kamzor hoga.");return}
+  aiRender(analyze(t));
+};
+$("aiS1").onclick=()=>{$("aiInp").value=AI_S;$("aiInp").oninput()};
+$("aiS2").onclick=()=>{$("aiInp").value=HU_S;$("aiInp").oninput()};
+$("aiClr").onclick=()=>{$("aiInp").value="";$("aiRes").style.display="none";$("aiInp").oninput()};
+
+})();
 load();render();
 </script>
 </body>
