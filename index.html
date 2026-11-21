@@ -93,6 +93,8 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 #aiView .ex.h{border-color:var(--good)}
 #aiView .ex small{display:block;color:var(--muted);margin-top:4px}
 #aiView .ex b.t{display:block;font-size:12px;margin-bottom:2px}
+#aiView .row a{padding:11px 16px;border-radius:12px;border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:15px;background:var(--card)}
+#aiView .note2{font-size:12.5px;color:var(--muted);margin:8px 0 0}
 </style>
 </head>
 <body>
@@ -149,6 +151,18 @@ input[type=text]{width:100%;padding:12px 14px;font-size:16px;border:1px solid va
 <button id="aiS2">Human sample</button>
 <button id="aiClr">Clear</button>
 <span class="cnt" id="aiCnt">0 words</span>
+<div class="card">
+<h2>✍️ Rewrite (10 points ke hisab se)</h2>
+<div class="md" style="margin-bottom:8px">Topic ya draft likhein. <b>Quick clean</b> AI phrases badal deta hai. <b>Rewrite prompt</b> ek taiyar prompt banata hai jo aap Claude ya ChatGPT mein use karein.</div>
+<textarea id="rwInp" placeholder="Topic ya draft yahan paste karein... (jaise: Impact of Raast on financial inclusion in Pakistan)"></textarea>
+<div class="row"><button class="primary" id="rwPrompt">✍️ Rewrite prompt banao</button><button id="rwClean">🧹 Quick clean</button></div>
+<div id="rwBox" style="display:none;margin-top:12px">
+<div class="md" id="rwNote" style="margin-bottom:6px"></div>
+<textarea id="rwOut" style="min-height:200px"></textarea>
+<div class="row"><button id="rwCopy">📋 Copy</button><button id="rwCheck">🔍 Check karein</button><a id="rwLink" target="_blank" rel="noopener noreferrer" style="display:none">Claude mein kholein</a></div>
+<div class="note2">Rewrite ke baad apna asli data, company ka naam aur SBP/SECP/PSX ka reference khud daalein. Apni university ki AI-use policy follow karein.</div>
+</div>
+</div>
 <div class="card info">
 <h2>AI Detector Kin Cheezon Ko Dekhta Hai?</h2>
 <h3>1. Predictability</h3><p>Kya agla word bohat aasani se predict kiya ja sakta hai? AI writing mein aam tor par predictable wording hoti hai.</p>
@@ -521,6 +535,50 @@ $("aiGo").onclick=()=>{
 $("aiS1").onclick=()=>{$("aiInp").value=AI_S;$("aiInp").oninput()};
 $("aiS2").onclick=()=>{$("aiInp").value=HU_S;$("aiInp").oninput()};
 $("aiClr").onclick=()=>{$("aiInp").value="";$("aiRes").style.display="none";$("aiInp").oninput()};
+
+const SWAP=[["it is important to note that ",""],["it is worth noting that ",""],["moreover,","also,"],["furthermore,","on top of that,"],["additionally,","also,"],["consequently,","so,"],["therefore,","so,"],["thus,","so,"],["hence,","so,"],["in conclusion,","to wrap up,"],["in summary,","in short,"],["plays a pivotal role in","matters a lot for"],["plays a crucial role in","matters a lot for"],["plays a vital role in","matters a lot for"],["has gained significant attention","is getting more attention"],["in recent years","lately"],["a holistic approach","a joined-up approach"],["robust framework","solid framework"],["rapidly transforming","changing"],["fostering","supporting"],["leverage","use"],["paramount","very important"],["pivotal","key"],["comprehensive","full"],["delve into","look at"],["seamless","smooth"],["lehaza","is liye"],["nateejatan","is wajah se"],["khulasa yeh","mukhtasar"]];
+function quickClean(t){
+  let c=0;
+  SWAP.forEach(([a,b])=>{
+    const re=new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi");
+    t=t.replace(re,m=>{c++;return(/^[A-Z]/.test(m)&&b)?b[0].toUpperCase()+b.slice(1):b});
+  });
+  t=t.replace(/ {2,}/g," ").replace(/(^|[.!?]\s+)([a-z])/g,(m,p,l)=>p+l.toUpperCase());
+  return{text:t,count:c};
+}
+function buildPrompt(txt){
+  const head=words(txt).length<25
+    ?"Write a clear, natural-sounding draft (about 250 words) on this topic for a Pakistani BBA Finance student.\n\nTOPIC: "+txt
+    :"Rewrite the following draft for a Pakistani BBA Finance student.\n\nDRAFT:\n"+txt;
+  return head+"\n\nMake it read like genuine student writing by following these 10 points:\n1. Predictability: avoid the most obvious textbook wording; use a few specific, less expected words.\n2. Sentence structure: vary how sentences are built and start them differently.\n3. Vocabulary: do not repeat the same academic words and phrases.\n4. Repetition: say each idea once; do not repeat points across paragraphs.\n5. Consistency: let the tone shift naturally between sections.\n6. Sentence length: mix short and long sentences.\n7. Generic language: remove statements that could fit any paper; be specific to Pakistan's banking and finance context (SBP, SECP, PSX, KIBOR, Raast) where relevant.\n8. Paragraphs: do not use the same claim-explanation-conclusion formula in every paragraph.\n9. Linguistic patterns: avoid cliche transitions (Moreover, Furthermore, Consequently, In conclusion, It is important to note).\n10. Specificity: include concrete details.\n\nRules: keep the original meaning and ideas. Do NOT invent statistics, company figures, quotes or citations. Wherever real data or a source is needed, put a placeholder such as [add your own ratio/figure here], [add SBP/SECP/PSX source] or [add your internship/class example] so I can fill in my own real information. Output only the rewritten text.";
+}
+function rwShow(note){$("rwBox").style.display="block";$("rwNote").textContent=note}
+$("rwClean").onclick=()=>{
+  const t=$("rwInp").value.trim();
+  if(words(t).length<5){alert("Pehle topic ya draft likhein.");return}
+  const r=quickClean(t);$("rwOut").value=r.text;$("rwLink").style.display="none";
+  let note=r.count+" AI phrase(s) badle gaye.";
+  if(words(t).length>=40){note+=" Score: "+Math.round(analyze(t).final)+"% → "+Math.round(analyze(r.text).final)+"%."}
+  rwShow(note+" Ye sirf phrases badalta hai; poora rewrite ke liye Rewrite prompt use karein.");
+};
+$("rwPrompt").onclick=()=>{
+  const t=$("rwInp").value.trim();
+  if(words(t).length<2){alert("Pehle topic ya draft likhein.");return}
+  const pr=buildPrompt(t);$("rwOut").value=pr;
+  const a=$("rwLink");
+  if(pr.length<5500){a.href="https://claude.ai/new?q="+encodeURIComponent(pr);a.style.display="inline-block"}else a.style.display="none";
+  rwShow("Ye prompt Claude ya ChatGPT mein paste karein (ya neeche link se kholein). Wahan se rewrite aane par yahan 'Check' karwa lein.");
+};
+$("rwCopy").onclick=()=>{
+  const o=$("rwOut"),v=o.value;
+  const fb=()=>{o.select();document.execCommand("copy")};
+  if(navigator.clipboard)navigator.clipboard.writeText(v).catch(fb);else fb();
+  $("rwCopy").textContent="✅ Copied";setTimeout(()=>$("rwCopy").textContent="📋 Copy",1500);
+};
+$("rwCheck").onclick=()=>{
+  $("aiInp").value=$("rwOut").value;$("aiInp").oninput();
+  $("aiGo").onclick();
+};
 
 })();
 load();render();
